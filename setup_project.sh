@@ -7,6 +7,7 @@ ERROR_CONFIG_NOT_SET=5
 ERROR_SOURCE_CONFIG=6
 ERROR_GIT_PULL=7
 ERROR_DOCKER_CREATE_NETWORK=8
+ERROR_DOCKER_CREATE_CONTAINER=9
 
 CONFIG_LOCATION=./config
 
@@ -157,11 +158,16 @@ function problem_creating_network() {
 }
 
 function start_db_container() {
-  docker run --name "$DOCKER_DB_NAME" -d "$DOCKER_DB_IMAGE":"$DOCKER_DB_IMAGE_VERSION"
+  docker run --name "$DOCKER_DB_NAME" --network="$DOCKER_NETWORK_NAME" -d "$DOCKER_DB_IMAGE":"$DOCKER_DB_IMAGE_VERSION" || problem_creating_container
 }
 
 function start_project_container() {
-  docker run -i -t --name "$PROJECT_NAME" -p "$PROJECT_PORT":"$PROJECT_PORT" -v "$(pwd)":/data --network="$DOCKER_NETWORK_NAME" "$DOCKER_USERNAME"/"$PROJECT_NAME"
+  docker run -i -t --name "$PROJECT_NAME" -p "$PROJECT_PORT":"$PROJECT_PORT" -v "$(pwd)":/data --network="$DOCKER_NETWORK_NAME" "$DOCKER_USERNAME"/"$PROJECT_NAME" || problem_creating_container
+}
+
+function problem_creating_container() {
+  print_to_screen "Problem creating container"
+  exit "$ERROR_DOCKER_CREATE_CONTAINER"
 }
 
 print_new_section "Checking if Docker is running"
@@ -188,3 +194,6 @@ create_docker_network
 
 print_new_section "Starting Docker DB container"
 start_db_container
+
+print_new_section "Starting project container"
+start_project_container
