@@ -5,6 +5,7 @@ ERROR_CHANGING_DIRECTORY=3
 ERROR_DIRECTORY_NOT_EMPTY=4
 ERROR_CONFIG_NOT_SET=5
 ERROR_SOURCE_CONFIG=6
+ERROR_GIT_PULL=7
 
 CONFIG_LOCATION=./config
 
@@ -34,6 +35,11 @@ function source_config() {
   # shellcheck source=config
   # shellcheck disable=SC1091
   source $CONFIG_LOCATION || error_sourcing_config
+  print_to_screen "Loaded config file"
+}
+
+function verify_env_variables() {
+  print_to_screen "Checking environment variables"
 
   if [ -z "${PROJECT_DIRECTORY}" ]
   then
@@ -41,7 +47,13 @@ function source_config() {
     exit "$ERROR_CONFIG_NOT_SET"
   fi
 
-  print_to_screen "Loaded config file"
+  if [ -z "${GIT_URI}" ]
+  then
+    print_to_screen "Git URI not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
+  print_to_screen "Environment variables all set"
 }
 
 function error_sourcing_config() {
@@ -54,7 +66,7 @@ function verify_project_directory() {
   then
     print_to_screen "$PROJECT_DIRECTORY exits, checking if it is empty"
     # shellcheck disable=SC2012
-    LINES=$(ls -l $PROJECT_DIRECTORY | wc -l)
+    LINES=$(ls -l "$PROJECT_DIRECTORY" | wc -l)
     if [ "$LINES" -ne 0 ]
     then
       print_to_screen "Directory is not empty, exiting"
@@ -72,10 +84,20 @@ function verify_project_directory() {
 function print_new_section() {
   echo
   echo "$1"
+  echo "==============="
 }
 
 function print_to_screen() {
   echo "...$1"
+}
+
+function pull_down_code() {
+  git clone "$GIT_URI" . || problem_with_git_pull
+}
+
+function problem_with_git_pull() {
+  print_to_screen "Problem pulling down repository"
+  exit "$ERROR_GIT_PULL"
 }
 
 print_new_section "Checking if Docker is running"
@@ -83,5 +105,9 @@ verify_docker_is_running
 print_new_section "Loading config file"
 verify_config_exists
 source_config
+print_new_section "Verifying ENV Variables set in config file"
+verify_env_variables
 print_new_section "Creating project directory"
 verify_project_directory
+print_new_section "Pulling down code"
+pull_down_code
