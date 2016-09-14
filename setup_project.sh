@@ -6,6 +6,7 @@ ERROR_DIRECTORY_NOT_EMPTY=4
 ERROR_CONFIG_NOT_SET=5
 ERROR_SOURCE_CONFIG=6
 ERROR_GIT_PULL=7
+ERROR_DOCKER_CREATE_NETWORK=8
 
 CONFIG_LOCATION=./config
 
@@ -65,6 +66,30 @@ function verify_env_variables() {
     exit "$ERROR_CONFIG_NOT_SET"
   fi
 
+  if [ -z "${DOCKER_DB_NAME}" ]
+  then
+    print_to_screen "Docker database name not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
+  if [ -z "${DOCKER_DB_IMAGE}" ]
+  then
+    print_to_screen "Docker database image not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
+  if [ -z "${DOCKER_DB_IMAGE_VERSION}" ]
+  then
+    print_to_screen "Docker database image version not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
+  if [ -z "${DOCKER_NETWORK_NAME}" ]
+  then
+    print_to_screen "Docker network name not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
   print_to_screen "Environment variables all set"
 }
 
@@ -116,6 +141,15 @@ function create_project_image() {
   docker build -t "$DOCKER_USERNAME"/"$PROJECT_NAME" .
 }
 
+function create_docker_network() {
+  docker network create "$DOCKER_NETWORK_NAME" || problem_creating_network
+}
+
+function problem_creating_network() {
+  print_to_screen "Problem creating docker network"
+  exit "$ERROR_DOCKER_CREATE_NETWORK"
+}
+
 print_new_section "Checking if Docker is running"
 verify_docker_is_running
 
@@ -134,3 +168,6 @@ pull_down_code
 
 print_new_section "Creating project docker image"
 create_project_image
+
+print_new_section "Creating Docker network"
+create_docker_network
