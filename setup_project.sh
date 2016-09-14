@@ -53,6 +53,18 @@ function verify_env_variables() {
     exit "$ERROR_CONFIG_NOT_SET"
   fi
 
+  if [ -z "${DOCKER_USERNAME}" ]
+  then
+    print_to_screen "Docker username not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
+  if [ -z "${PROJECT_NAME}" ]
+  then
+    print_to_screen "Project name not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
   print_to_screen "Environment variables all set"
 }
 
@@ -100,14 +112,25 @@ function problem_with_git_pull() {
   exit "$ERROR_GIT_PULL"
 }
 
+function create_project_image() {
+  docker build -t "$DOCKER_USERNAME"/"$PROJECT_NAME" .
+}
+
 print_new_section "Checking if Docker is running"
 verify_docker_is_running
+
 print_new_section "Loading config file"
 verify_config_exists
 source_config
+
 print_new_section "Verifying ENV Variables set in config file"
 verify_env_variables
+
 print_new_section "Creating project directory"
 verify_project_directory
+
 print_new_section "Pulling down code"
 pull_down_code
+
+print_new_section "Creating project docker image"
+create_project_image
