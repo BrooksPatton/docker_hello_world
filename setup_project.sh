@@ -90,6 +90,12 @@ function verify_env_variables() {
     exit "$ERROR_CONFIG_NOT_SET"
   fi
 
+  if [ -z "${PROJECT_PORT}" ]
+  then
+    print_to_screen "Project port not set in config, exiting"
+    exit "$ERROR_CONFIG_NOT_SET"
+  fi
+
   print_to_screen "Environment variables all set"
 }
 
@@ -150,6 +156,14 @@ function problem_creating_network() {
   exit "$ERROR_DOCKER_CREATE_NETWORK"
 }
 
+function start_db_container() {
+  docker run --name "$DOCKER_DB_NAME" -d "$DOCKER_DB_IMAGE":"$DOCKER_DB_IMAGE_VERSION"
+}
+
+function start_project_container() {
+  docker run -i -t --name "$PROJECT_NAME" -p "$PROJECT_PORT":"$PROJECT_PORT" -v "$(pwd)":/data --network="$DOCKER_NETWORK_NAME" "$DOCKER_USERNAME"/"$PROJECT_NAME"
+}
+
 print_new_section "Checking if Docker is running"
 verify_docker_is_running
 
@@ -171,3 +185,6 @@ create_project_image
 
 print_new_section "Creating Docker network"
 create_docker_network
+
+print_new_section "Starting Docker DB container"
+start_db_container
