@@ -4,6 +4,7 @@ ERROR_CONFIG_MISSING=2
 ERROR_CHANGING_DIRECTORY=3
 ERROR_DIRECTORY_NOT_EMPTY=4
 ERROR_CONFIG_NOT_SET=5
+ERROR_SOURCE_CONFIG=6
 
 CONFIG_LOCATION=./config
 
@@ -12,9 +13,9 @@ function verify_docker_is_running() {
 
   if [ "$DOCKER_INFO_OUTPUT" == "Containers:" ]
     then
-      echo "Docker is running, so we can continue"
+      print_to_screen "Docker is running"
     else
-      echo "Docker is not running, exiting"
+      print_to_screen "Docker is not running, exiting"
       exit "$ERROR_DOCKER_NOT_RUNNING"
   fi
 }
@@ -22,60 +23,65 @@ function verify_docker_is_running() {
 function verify_config_exists() {
   if [ -f $CONFIG_LOCATION ]
   then
-    echo "config file exists!"
+    print_to_screen "Config file found"
   else
-    echo "Config file missing, exiting"
+    print_to_screen "Config file missing, exiting"
     exit "$ERROR_CONFIG_MISSING"
   fi
 }
 
 function source_config() {
-# shellcheck source=config
-# shellcheck disable=SC1091
-  source $CONFIG_LOCATION
-  EXIT_CODE=$?
-
-  check_exit_code $EXIT_CODE 'loading config file'
+  # shellcheck source=config
+  # shellcheck disable=SC1091
+  source $CONFIG_LOCATION || error_sourcing_config
 
   if [ -z "${PROJECT_DIRECTORY}" ]
   then
-    echo "Project directory environment variable not set, exiting"
+    print_to_screen "Project directory not set in config, exiting"
     exit "$ERROR_CONFIG_NOT_SET"
   fi
+
+  print_to_screen "Loaded config file"
 }
 
-function check_exit_code() {
-  EXIT_CODE=$1
-  MESSAGE=$2
-
-  if [ "$EXIT_CODE" -ne 0 ]
-  then
-    echo "Error $MESSAGE, exiting"
-    exit "$EXIT_CODE"
-  else
-    echo "$MESSAGE"
-  fi
+function error_sourcing_config() {
+  print_to_screen "Error loading the config file, exiting"
+  exit "$ERROR_SOURCE_CONFIG"
 }
 
 function verify_project_directory() {
   if [ -d "$PROJECT_DIRECTORY" ]
   then
-    echo "$PROJECT_DIRECTORY exits, checking if it is empty"
-    cd "$PROJECT_DIRECTORY" || exit "$ERROR_CHANGING_DIRECTORY"
+    print_to_screen "$PROJECT_DIRECTORY exits, checking if it is empty"
     # shellcheck disable=SC2012
-    LINES=$(ls -l | wc -l)
+    LINES=$(ls -l $PROJECT_DIRECTORY | wc -l)
     if [ "$LINES" -ne 0 ]
     then
-      echo "Directory is not empty, exiting"
+      print_to_screen "Directory is not empty, exiting"
       exit "$ERROR_DIRECTORY_NOT_EMPTY"
     fi
   else
-    echo "Creating $PROJECT_DIRECTORY"
+    print_to_screen "Creating $PROJECT_DIRECTORY"
     mkdir "$PROJECT_DIRECTORY"
   fi
+
+  print_to_screen "Changing directory to $PROJECT_DIRECTORY"
+  cd "$PROJECT_DIRECTORY" || exit "$ERROR_CHANGING_DIRECTORY"
 }
 
+function print_new_section() {
+  echo
+  echo "$1"
+}
+
+function print_to_screen() {
+  echo "...$1"
+}
+
+print_new_section "Checking if Docker is running"
 verify_docker_is_running
+print_new_section "Loading config file"
 verify_config_exists
 source_config
+print_new_section "Creating project directory"
 verify_project_directory
