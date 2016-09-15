@@ -1,0 +1,9 @@
+PROJECT_DIRECTORY="/path/to/the/project"
+GIT_URI="git@github.com:username/project.git"
+DOCKER_USERNAME=username
+PROJECT_NAME=projectname
+DOCKER_DB_NAME=dbname
+DOCKER_DB_IMAGE=dockerhubname
+DOCKER_DB_IMAGE_VERSION="3.2.1"
+DOCKER_NETWORK_NAME="sample_network"
+PROJECT_PORT=3000
